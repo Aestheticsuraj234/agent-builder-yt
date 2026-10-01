@@ -101,3 +101,35 @@ export async function updateAgent(
     },
   });
 }
+
+
+
+export async function saveAgent(
+  agentId: string,
+  data: {
+    name: string;
+    description: string;
+    draftDefinition: any;
+    canvas: any;
+  }
+) {
+  const user = await requireAuth();
+
+  const agent = await prisma.agent.findFirst({
+    where: { id: agentId, userId: user.user.id },
+  });
+
+  if (!agent) {
+    throw new Error("Agent not found");
+  }
+
+  return prisma.agent.update({
+    where: { id: agentId },
+    data: {
+      name: data.name,
+      description: data.description,
+      draftDefinition: data.draftDefinition,
+      canvas: data.canvas,
+    },
+  });
+}
