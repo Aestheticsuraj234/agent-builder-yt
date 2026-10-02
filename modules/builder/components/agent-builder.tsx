@@ -19,6 +19,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { ChatPanel } from "@/modules/playground/components/chat-panel";
 
 type AgentBuilderProps = {
   agent: {
@@ -28,9 +29,10 @@ type AgentBuilderProps = {
     icon: string;
     draftDefinition: unknown;
     canvas: unknown;
+    welcomeMessage?: string;
+    starterPrompts?: unknown;
   };
 };
-
 export function AgentBuilder({ agent }: AgentBuilderProps) {
   const init = useCanvasStore((s) => s.init);
   const isDirty = useCanvasStore((s) => s.isDirty);
@@ -44,7 +46,7 @@ export function AgentBuilder({ agent }: AgentBuilderProps) {
   const [description, setDescription] = useState(agent.description);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-
+  const [chatOpen, setChatOpen] = useState(false);
   useEffect(() => {
     init(agent.draftDefinition as AgentDefinition, agent.canvas as any);
   }, [agent.id]);
@@ -86,6 +88,9 @@ export function AgentBuilder({ agent }: AgentBuilderProps) {
         <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)}>
           Settings
         </Button>
+        <Button variant="outline" size="sm" onClick={() => setChatOpen(true)}>
+            Test Chat
+          </Button>
         <Button onClick={handleSave} disabled={saveAgent.isPending}>
           {saveAgent.isPending ? "Saving..." : "Save"}
         </Button>
@@ -110,6 +115,26 @@ export function AgentBuilder({ agent }: AgentBuilderProps) {
         </div>
       </DrawerContent>
     </Drawer>
+
+    <Drawer open={chatOpen} onOpenChange={setChatOpen} swipeDirection="up">
+        <DrawerContent className="h-[70vh] max-h-[70vh]">
+          <DrawerHeader>
+            <DrawerTitle>Test chat</DrawerTitle>
+            <DrawerDescription>
+              Try your agent with the current canvas config. Save first if you changed tools.
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <ChatPanel
+              agentId={agent.id}
+              definition={getDefinition()}
+              welcomeMessage={agent.welcomeMessage}
+              starterPrompts={(agent.starterPrompts as string[]) ?? []}
+            />
+          </div>
+        </DrawerContent>
+      </Drawer>
+
 
     <Drawer open={settingsOpen} onOpenChange={setSettingsOpen} swipeDirection="right">
       <DrawerContent className="max-w-md">
