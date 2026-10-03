@@ -77,22 +77,28 @@ export async function POST(
       }
 
       try {
-        assistantText = await runAgentStream(definition, history, message, (event) => {
-          if (event.type === "text_delta") {
-            send(event);
-          }
-          if (event.type === "tool_started") {
-            toolEvents.push({ ...event, status: "started" });
-            send(event);
-          }
-          if (event.type === "tool_completed") {
-            toolEvents.push({ ...event, status: "completed" });
-            send(event);
-          }
-          if (event.type === "run_failed") {
-            send(event);
-          }
-        });
+        assistantText = await runAgentStream(
+          definition,
+          history,
+          message,
+          session.user.id,
+          (event) => {
+            if (event.type === "text_delta") {
+              send(event);
+            }
+            if (event.type === "tool_started") {
+              toolEvents.push({ ...event, status: "started" });
+              send(event);
+            }
+            if (event.type === "tool_completed") {
+              toolEvents.push({ ...event, status: "completed" });
+              send(event);
+            }
+            if (event.type === "run_failed") {
+              send(event);
+            }
+          },
+        );
 
         await prisma.message.create({
           data: {

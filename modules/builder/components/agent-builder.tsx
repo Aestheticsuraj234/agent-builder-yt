@@ -36,7 +36,11 @@ type AgentBuilderProps = {
 export function AgentBuilder({ agent }: AgentBuilderProps) {
   const init = useCanvasStore((s) => s.init);
   const isDirty = useCanvasStore((s) => s.isDirty);
+  useCanvasStore((s) => s.nodes);
+  useCanvasStore((s) => s.edges);
+  const settingsNonce = useCanvasStore((s) => s.settingsNonce);
   const getDefinition = useCanvasStore((s) => s.getDefinition);
+  const getAgentDefinition = useCanvasStore((s) => s.getAgentDefinition);
   const getCanvas = useCanvasStore((s) => s.getCanvas);
   const markClean = useCanvasStore((s) => s.markClean);
 
@@ -55,6 +59,12 @@ export function AgentBuilder({ agent }: AgentBuilderProps) {
     setName(agent.name);
     setDescription(agent.description);
   }, [agent.name, agent.description]);
+
+  useEffect(() => {
+    if (settingsNonce === 0) return;
+    setToolsOpen(false);
+    setSettingsOpen(true);
+  }, [settingsNonce]);
 
   function handleSave() {
     saveAgent.mutate(
@@ -127,7 +137,7 @@ export function AgentBuilder({ agent }: AgentBuilderProps) {
           <div className="min-h-0 flex-1 overflow-hidden">
             <ChatPanel
               agentId={agent.id}
-              definition={getDefinition()}
+              definition={getAgentDefinition()}
               welcomeMessage={agent.welcomeMessage}
               starterPrompts={(agent.starterPrompts as string[]) ?? []}
             />
