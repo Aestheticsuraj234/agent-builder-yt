@@ -1,6 +1,7 @@
 import { Logo } from "@/components/logo";
 import { requireAuth } from "@/modules/auth/actions";
 import { UserButton } from "@/modules/auth/components/user-button";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import Link from "next/link";
 
 export default async function DashboardLayout({
@@ -30,9 +31,9 @@ export default async function DashboardLayout({
             New Agent
           </Link>
         </nav>
-        <div className="mt-auto space-y-3 border-t border-border p-3">
+        <div className="mt-auto flex items-center justify-between gap-2 border-t border-border p-3">
           <UserButton user={user.user} />
-         
+          <ModeToggle />
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>

@@ -1,6 +1,10 @@
 "use client";
 
-import type { CustomToolConfig, CustomToolParam } from "@/modules/builder/lib/custom-tool";
+import {
+  toToolName,
+  type CustomToolConfig,
+  type CustomToolParam,
+} from "@/modules/builder/lib/custom-tool";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +66,9 @@ export function CustomToolSettings({
           value={config.name}
           onChange={(e) => updateConfig({ name: e.target.value })}
         />
+        <p className="text-muted-foreground text-xs">
+          The AI sees this tool as <code>{toToolName(config.name)}</code>
+        </p>
       </div>
 
       <div className="space-y-2">

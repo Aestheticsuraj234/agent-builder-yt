@@ -38,6 +38,18 @@ export type CustomToolParam = {
     };
   }
   
+  // OpenAI only allows letters, numbers, "_" and "-" in tool names.
+  // "My Weather Tool!" becomes "my_weather_tool".
+  export function toToolName(name: string) {
+    const cleaned = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    return cleaned || "custom_tool";
+  }
+
   export function isCustomToolConfig(config: unknown): config is CustomToolConfig {
     return (config as CustomToolConfig)?.type === "custom";
   }

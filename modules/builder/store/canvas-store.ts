@@ -11,12 +11,11 @@ import {
   type NodeChange,
 } from "@xyflow/react";
 import { create } from "zustand";
-import type { AgentDefinition } from "@/modules/agents/lib/definition";
 import type { BuilderDefinition } from "@/modules/workflows/lib/schema";
 import {
-  canvasToAgentDefinition,
   canvasToBuilderDefinition,
   loadCanvasFromDraft,
+  type SavedCanvas,
 } from "@/modules/builder/lib/serialize";
 import { defaultCustomToolConfig } from "@/modules/builder/lib/custom-tool";
 
@@ -27,17 +26,17 @@ type CanvasStore = {
   edges: Edge[];
   selectedNodeId: string | null;
   selectedToolIndex: number | null;
-  settingsNonce: number;
+  settingsOpen: boolean;
   memoryEnabled: boolean;
   limits: BuilderDefinition["limits"];
   isDirty: boolean;
-  init: (draftDefinition: unknown, canvas: any) => void;
+  init: (draftDefinition: unknown, canvas: unknown) => void;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
   selectNode: (nodeId: string | null) => void;
   selectTool: (index: number | null) => void;
-  getAgentNodeId: () => string;
+  setSettingsOpen: (open: boolean) => void;
   addTool: (toolId: string) => void;
   addCustomTool: () => void;
   removeTool: (index: number) => void;
@@ -45,7 +44,6 @@ type CanvasStore = {
   toggleMemory: () => void;
   updateNodeData: (nodeId: string, data: Record<string, unknown>) => void;
   getDefinition: () => BuilderDefinition;
-  getAgentDefinition: () => AgentDefinition;
   getCanvas: () => { nodes: Node[]; edges: Edge[] };
   markClean: () => void;
 };
@@ -76,13 +74,13 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   edges: [],
   selectedNodeId: null,
   selectedToolIndex: null,
-  settingsNonce: 0,
+  settingsOpen: false,
   memoryEnabled: false,
   limits: { maxGraphSteps: 10, maxToolCalls: 5, timeoutMs: 60000 },
   isDirty: false,
 
   init(draftDefinition, canvas) {
-    const { nodes, edges } = loadCanvasFromDraft(draftDefinition, canvas);
+    const { nodes, edges } = loadCanvasFromDraft(draftDefinition, canvas as SavedCanvas | null);
     const builder = canvasToBuilderDefinition(nodes, edges);
     const agentNode = getAgentNode(nodes);
 
@@ -93,7 +91,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       edges,
       selectedNodeId: null,
       selectedToolIndex: null,
-      settingsNonce: 0,
+      settingsOpen: false,
       memoryEnabled: builder.memory.enabled,
       limits: builder.limits,
       isDirty: false,
@@ -109,14 +107,15 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
 
     set({
       nodes: applyNodeChanges(filtered, get().nodes),
-      isDirty: true,
+      // React Flow also sends "select" and "dimensions" changes, which are not real edits.
+      isDirty: get().isDirty || filtered.some((c) => c.type === "position" || c.type === "remove"),
     });
   },
 
   onEdgesChange(changes) {
     set({
       edges: applyEdgeChanges(changes, get().edges),
-      isDirty: true,
+      isDirty: get().isDirty || changes.some((c) => c.type === "remove"),
     });
   },
 
@@ -129,19 +128,25 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
     });
   },
 
+  // Clicking a node selects it and opens the settings drawer.
   selectNode(nodeId) {
-    set({ selectedNodeId: nodeId, selectedToolIndex: null });
-  },
-
-  selectTool(index) {
     set({
-      selectedToolIndex: index,
-      settingsNonce: index === null ? get().settingsNonce : get().settingsNonce + 1,
+      selectedNodeId: nodeId,
+      selectedToolIndex: null,
+      settingsOpen: nodeId !== null ? true : get().settingsOpen,
     });
   },
 
-  getAgentNodeId() {
-    return getAgentNode(get().nodes)?.id ?? "agent";
+  // Clicking a custom tool badge opens its settings.
+  selectTool(index) {
+    set({
+      selectedToolIndex: index,
+      settingsOpen: index !== null ? true : get().settingsOpen,
+    });
+  },
+
+  setSettingsOpen(open) {
+    set({ settingsOpen: open });
   },
 
   addTool(toolId) {
@@ -171,7 +176,7 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
       nodes: updateAgentData(get().nodes, agentNode.id, { tools: nextTools }),
       selectedNodeId: agentNode.id,
       selectedToolIndex: nextTools.length - 1,
-      settingsNonce: get().settingsNonce + 1,
+      settingsOpen: true,
       isDirty: true,
     });
   },
@@ -230,11 +235,6 @@ export const useCanvasStore = create<CanvasStore>((set, get) => ({
   getDefinition() {
     const { nodes, edges, memoryEnabled, limits } = get();
     return canvasToBuilderDefinition(nodes, edges, { memoryEnabled, limits });
-  },
-
-  getAgentDefinition() {
-    const { nodes, edges, memoryEnabled, limits } = get();
-    return canvasToAgentDefinition(nodes, edges, { memoryEnabled, limits });
   },
 
   getCanvas() {

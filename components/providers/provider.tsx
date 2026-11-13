@@ -1,6 +1,5 @@
 "use client";
 
-import { Toaster } from "../ui/toast";
 import { TooltipProvider } from "../ui/tooltip";
 import { QueryProvider } from "./query-provider";
 import { ThemeProvider } from "./theme-provider";

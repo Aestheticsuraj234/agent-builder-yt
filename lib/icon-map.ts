@@ -6,10 +6,12 @@ import {
   BotIcon,
   Calculator01Icon,
   FileDiffIcon,
+  Flag01Icon,
   Folder01Icon,
   GitPullRequestIcon,
   GlobeIcon,
   PencilEdit01Icon,
+  PlayIcon,
   SearchIcon,
   SourceCodeIcon,
   SunCloud01Icon,
@@ -34,6 +36,8 @@ export const iconMap = {
   github_get_diff: FileDiffIcon,
   memory: AiBrain01Icon,
   custom: Add01Icon,
+  play: PlayIcon,
+  flag: Flag01Icon,
 };
 
 export const iconColors: Record<keyof typeof iconMap, string> = {
@@ -55,6 +59,8 @@ export const iconColors: Record<keyof typeof iconMap, string> = {
   github_get_diff: "text-rose-400",
   memory: "text-cyan-400",
   custom: "text-lime-400",
+  play: "text-emerald-400",
+  flag: "text-rose-400",
 };
 
 export const iconBgColors: Record<keyof typeof iconMap, string> = {
@@ -76,6 +82,8 @@ export const iconBgColors: Record<keyof typeof iconMap, string> = {
   github_get_diff: "bg-rose-500/15",
   memory: "bg-cyan-500/15",
   custom: "bg-lime-500/15",
+  play: "bg-emerald-500/15",
+  flag: "bg-rose-500/15",
 };
 
 export type IconName = keyof typeof iconMap;

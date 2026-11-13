@@ -1,5 +1,5 @@
 import type { StructuredTool } from "@langchain/core/tools";
-import type { AgentDefinition } from "@/modules/agents/lib/definition";
+import type { AgentNodeConfig } from "@/modules/workflows/lib/schema";
 import { isCustomToolConfig } from "@/modules/builder/lib/custom-tool";
 import { buildCustomTool } from "./custom-http";
 import { calculatorTool } from "./calculator";
@@ -23,21 +23,21 @@ const githubToolIds = [
   "github_get_diff",
 ];
 
-export async function getToolsForAgent(definition: AgentDefinition, userId: string) {
+export async function getToolsForAgent(config: AgentNodeConfig, userId: string) {
   const tools: StructuredTool[] = [];
-  const needsGithub = definition.tools.some((t) => githubToolIds.includes(t.toolId));
+  const needsGithub = config.tools.some((t) => githubToolIds.includes(t.toolId));
 
   let githubTools: Record<string, StructuredTool> = {};
   if (needsGithub) {
     const token = await getGithubToken(userId);
     githubTools = createGithubTools(token, {
-      owner: definition.github?.owner,
-      repo: definition.github?.repo,
-      defaultPrNumber: definition.github?.defaultPrNumber,
+      owner: config.github?.owner,
+      repo: config.github?.repo,
+      defaultPrNumber: config.github?.defaultPrNumber,
     });
   }
 
-  for (const t of definition.tools) {
+  for (const t of config.tools) {
     if (isCustomToolConfig(t.config)) {
       tools.push(buildCustomTool(t.config));
       continue;

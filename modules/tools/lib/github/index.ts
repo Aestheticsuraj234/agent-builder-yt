@@ -3,6 +3,9 @@ import { z } from "zod";
 import type { GithubDefaults } from "./client";
 import { githubFetch, parsePrInput, resolveRepo } from "./client";
 
+type GithubFile = { name: string; path: string; type: string };
+type GithubSearchItem = { name: string; path: string; html_url: string };
+
 export function createGithubTools(token: string | null, defaults: GithubDefaults = {}) {
   if (!token) {
     const stub = (name: string, description: string) =>
@@ -35,7 +38,7 @@ export function createGithubTools(token: string | null, defaults: GithubDefaults
       if (data.error) return `GitHub error: ${data.error}`;
 
       if (Array.isArray(data)) {
-        return JSON.stringify(data.map((f: any) => ({ name: f.name, path: f.path, type: f.type })));
+        return JSON.stringify(data.map((f: GithubFile) => ({ name: f.name, path: f.path, type: f.type })));
       }
 
       const content = data.content
@@ -67,7 +70,7 @@ export function createGithubTools(token: string | null, defaults: GithubDefaults
 
       if (data.error) return `GitHub error: ${data.error}`;
 
-      const items = (data.items ?? []).map((item: any) => ({
+      const items = (data.items ?? []).map((item: GithubSearchItem) => ({
         name: item.name,
         path: item.path,
         url: item.html_url,

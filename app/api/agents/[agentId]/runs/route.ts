@@ -1,8 +1,19 @@
 import { headers } from "next/headers";
+import { z } from "zod";
 import { prisma } from "@/lib/db";
-import type { AgentDefinition } from "@/modules/agents/lib/definition";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import { auth } from "@/lib/auth";
 import { runAgentStream } from "@/modules/runtime/lib/run-agent";
+import { builderDefinitionSchema } from "@/modules/workflows/lib/schema";
+import { loadBuilderDefinition } from "@/modules/workflows/lib/migrate-v1";
+
+// What the chat panel sends us. `definition` is the (maybe unsaved) canvas.
+// If it is missing we fall back to the agent's saved draft.
+const runRequestSchema = z.object({
+  message: z.string().trim().min(1, "Message cannot be empty"),
+  conversationId: z.string().optional(),
+  definition: builderDefinitionSchema.optional(),
+});
 
 export async function POST(
   req: Request,
@@ -16,22 +27,26 @@ export async function POST(
 
   const { agentId } = await params;
 
-  const body = await req.json();
+  const parsed = runRequestSchema.safeParse(await req.json().catch(() => null));
 
-  const message = body.message as string;
-  const conversationId = body.conversationId as string | undefined;
-  const definition = body.definition as AgentDefinition;
+  if (!parsed.success) {
+    return new Response(parsed.error.issues[0]?.message ?? "Invalid request", {
+      status: 400,
+    });
+  }
+
+  const { message, conversationId } = parsed.data;
 
   const agent = await prisma.agent.findFirst({
-    where:{
-        id:agentId,
-        userId:session.user.id,
-    }
+    where: { id: agentId, userId: session.user.id },
   });
 
   if (!agent) {
     return new Response("Not found", { status: 404 });
   }
+
+  const definition =
+    parsed.data.definition ?? loadBuilderDefinition(agent.draftDefinition);
 
   let conversation = conversationId
     ? await prisma.conversation.findFirst({
@@ -49,8 +64,9 @@ export async function POST(
       },
       include: { messages: true },
     });
-  };
+  }
 
+  const conversationIdToUse = conversation.id;
 
   const history = conversation.messages.map((m) => ({
     role: m.role,
@@ -58,16 +74,14 @@ export async function POST(
   }));
 
   await prisma.message.create({
-    data:{
-        conversationId:conversation.id,
-        role:"user",
-        content:message,
-    }
+    data: {
+      conversationId: conversationIdToUse,
+      role: "user",
+      content: message,
+    },
   });
 
-  const toolEvents:any[] = [];
-  let assistantText = "";
-
+  const toolEvents: { tool: string; status: string; input?: unknown; output?: string }[] = [];
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -77,48 +91,40 @@ export async function POST(
       }
 
       try {
-        assistantText = await runAgentStream(
+        const assistantText = await runAgentStream(
           definition,
           history,
           message,
           session.user.id,
           (event) => {
-            if (event.type === "text_delta") {
-              send(event);
-            }
             if (event.type === "tool_started") {
-              toolEvents.push({ ...event, status: "started" });
-              send(event);
+              toolEvents.push({ tool: event.tool, input: event.input, status: "started" });
             }
             if (event.type === "tool_completed") {
-              toolEvents.push({ ...event, status: "completed" });
-              send(event);
+              toolEvents.push({ tool: event.tool, output: event.output, status: "completed" });
             }
-            if (event.type === "run_failed") {
-              send(event);
-            }
+            send(event);
           },
         );
 
         await prisma.message.create({
           data: {
-            conversationId: conversation!.id,
+            conversationId: conversationIdToUse,
             role: "assistant",
             content: assistantText || "No response",
-            toolEvents,
+            toolEvents: toolEvents as Prisma.InputJsonValue,
           },
         });
 
-        send({ type: "run_completed", conversationId: conversation!.id });
-      } catch (err: any) {
-        send({ type: "run_failed", error: err?.message ?? "Run failed" });
+        send({ type: "run_completed", conversationId: conversationIdToUse });
+      } catch (err) {
+        const error = err instanceof Error ? err.message : "Run failed";
+        send({ type: "run_failed", error, conversationId: conversationIdToUse });
       }
 
       controller.close();
     },
   });
-
-
 
   return new Response(stream, {
     headers: {
@@ -127,5 +133,4 @@ export async function POST(
       Connection: "keep-alive",
     },
   });
-
 }

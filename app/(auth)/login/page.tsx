@@ -17,7 +17,7 @@ export default async function SignInPage() {
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center">
           <div className="mb-2 flex justify-center">
-            <Logo showLabel={false} href="/auth/sign-in" />
+            <Logo showLabel={false} href="/login" />
           </div>
           <CardTitle>Welcome back</CardTitle>
           <CardDescription>Sign in to continue to Agent Builder</CardDescription>

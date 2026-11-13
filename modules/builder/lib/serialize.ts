@@ -1,17 +1,14 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { AgentDefinition } from "@/modules/agents/lib/definition";
 import type { BuilderDefinition } from "@/modules/workflows/lib/schema";
 import { defaultBuilderDefinition } from "@/modules/workflows/lib/schema";
 import {
-  builderToAgentDefinition,
   isV1Canvas,
   isV1Definition,
   loadBuilderDefinition,
   migrateV1CanvasToV2,
 } from "@/modules/workflows/lib/migrate-v1";
-import { getToolLabel } from "./tools-catalog";
 
-type SavedCanvas = {
+export type SavedCanvas = {
   nodes: Node[];
   edges: Edge[];
 };
@@ -193,14 +190,6 @@ export function canvasToBuilderDefinition(
   };
 }
 
-export function canvasToAgentDefinition(
-  nodes: Node[],
-  edges: Edge[],
-  opts?: { memoryEnabled?: boolean; limits?: BuilderDefinition["limits"] }
-): AgentDefinition {
-  return builderToAgentDefinition(canvasToBuilderDefinition(nodes, edges, opts));
-}
-
 export function loadCanvasFromDraft(
   draftDefinition: unknown,
   savedCanvas: SavedCanvas | null
@@ -214,12 +203,4 @@ export function loadCanvasFromDraft(
   }
 
   return definitionToCanvas(builder, savedCanvas);
-}
-
-export function getCanvasJson(nodes: Node[], edges: Edge[]) {
-  return { nodes, edges };
-}
-
-export function getAgentToolBadges(tools: { toolId: string; config?: unknown }[]) {
-  return tools.map((t) => getToolLabel(t.toolId, t.config));
 }

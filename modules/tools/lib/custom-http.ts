@@ -1,16 +1,16 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
-import type { CustomToolConfig } from "@/modules/builder/lib/custom-tool";
+import { toToolName, type CustomToolConfig } from "@/modules/builder/lib/custom-tool";
 
 function fillTemplate(template: string, params: Record<string, unknown>) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => String(params[key] ?? ""));
 }
 
 export function buildCustomTool(config: CustomToolConfig) {
-  const paramSchema: Record<string, any> = {};
+  const paramSchema: Record<string, z.ZodType> = {};
 
   for (const param of config.parameters) {
-    let field: any =
+    let field: z.ZodType =
       param.type === "number"
         ? z.number()
         : param.type === "boolean"
@@ -24,16 +24,14 @@ export function buildCustomTool(config: CustomToolConfig) {
     paramSchema[param.name] = field.describe(param.description);
   }
 
-  const schema =
-    Object.keys(paramSchema).length > 0 ? z.object(paramSchema) : z.object({});
-
   return tool(
     async (params) => {
-      const url = fillTemplate(config.url, params as Record<string, unknown>);
+      const values = params as Record<string, unknown>;
+      const url = fillTemplate(config.url, values);
       const headers: Record<string, string> = {};
 
       for (const h of config.headers) {
-        if (h.key) headers[h.key] = fillTemplate(h.value, params as Record<string, unknown>);
+        if (h.key) headers[h.key] = fillTemplate(h.value, values);
       }
 
       const options: RequestInit = {
@@ -43,18 +41,22 @@ export function buildCustomTool(config: CustomToolConfig) {
       };
 
       if (config.method !== "GET" && config.body) {
-        options.body = fillTemplate(config.body, params as Record<string, unknown>);
+        options.body = fillTemplate(config.body, values);
       }
 
       const res = await fetch(url, options);
       const text = await res.text();
 
+      if (!res.ok) {
+        return `Request failed with status ${res.status}: ${text.slice(0, 2000)}`;
+      }
+
       return text.slice(0, 8000);
     },
     {
-      name: config.name.replace(/\s+/g, "_").toLowerCase(),
+      name: toToolName(config.name),
       description: config.description,
-      schema,
+      schema: z.object(paramSchema),
     }
   );
 }

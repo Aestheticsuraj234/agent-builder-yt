@@ -1,12 +1,9 @@
+// OpenAI chat models that support tool calling.
+// You can still type any other model ID in the settings panel.
 export const popularGptModels = [
   "gpt-4o-mini",
   "gpt-4o",
-  "gpt-4-turbo",
-  "gpt-4",
-  "gpt-3.5-turbo",
-  "o1",
-  "o1-mini",
-  "o1-preview",
+  "gpt-4.1-mini",
+  "gpt-4.1",
   "o3-mini",
-  "chatgpt-4o-latest",
 ];

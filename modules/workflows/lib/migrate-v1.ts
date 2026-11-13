@@ -1,6 +1,5 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { AgentDefinition } from "@/modules/agents/lib/definition";
-import { defaultDefinition } from "@/modules/agents/lib/definition";
 import type { BuilderDefinition } from "./schema";
 import { defaultBuilderDefinition } from "./schema";
 
@@ -36,30 +35,6 @@ export function migrateV1ToV2(v1: AgentDefinition): BuilderDefinition {
       maxToolCalls: v1.limits.maxToolCalls,
       timeoutMs: v1.limits.timeoutMs,
     },
-  };
-}
-
-export function builderToAgentDefinition(builder: BuilderDefinition): AgentDefinition {
-  const base = defaultDefinition();
-  const agentNode = builder.nodes.find((n) => n.type === "agent");
-
-  if (!agentNode || agentNode.type !== "agent") {
-    return base;
-  }
-
-  const config = agentNode.config;
-
-  return {
-    schemaVersion: 1,
-    instructions: config.instructions,
-    model: { provider: "openai", modelId: config.modelId },
-    tools: config.tools,
-    memory: builder.memory,
-    limits: {
-      maxToolCalls: builder.limits.maxToolCalls,
-      timeoutMs: builder.limits.timeoutMs,
-    },
-    github: config.github ?? { owner: "", repo: "", defaultPrNumber: "" },
   };
 }
 

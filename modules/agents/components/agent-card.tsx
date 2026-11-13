@@ -1,8 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
 import { useDeleteAgent } from "@/modules/agents/hooks/use-agents";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Card,
   CardContent,
@@ -18,7 +30,7 @@ type AgentCardProps = {
     name: string;
     description: string;
     icon: string;
-    templateId: string | null;
+    updatedAt: Date;
   };
 };
 
@@ -32,25 +44,40 @@ export function AgentCard({ agent }: AgentCardProps) {
           <span className="text-2xl">{agent.icon}</span>
           {agent.name}
         </CardTitle>
-        <CardDescription>
-          {agent.description || "No description yet"}
-          {agent.templateId ? ` · from ${agent.templateId}` : ""}
-        </CardDescription>
+        <CardDescription>{agent.description || "No description yet"}</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground text-xs">Click Open to edit this agent.</p>
+        <p className="text-muted-foreground text-xs">
+          Updated {formatDistanceToNow(agent.updatedAt, { addSuffix: true })}
+        </p>
       </CardContent>
       <CardFooter className="gap-2">
         <Button render={<Link href={`/agents/${agent.id}/builder`} />} nativeButton={false}>
           Open
         </Button>
-        <Button
-          variant="outline"
-          onClick={() => deleteAgent.mutate(agent.id)}
-          disabled={deleteAgent.isPending}
-        >
-          {deleteAgent.isPending ? "Deleting..." : "Delete"}
-        </Button>
+
+        <AlertDialog>
+          <AlertDialogTrigger render={<Button variant="outline" />}>Delete</AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete &quot;{agent.name}&quot;?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This deletes the agent and all its test chats. You can&apos;t undo this.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              {/* Once deleted, this card (and the dialog) disappears from the list. */}
+              <AlertDialogAction
+                variant="destructive"
+                disabled={deleteAgent.isPending}
+                onClick={() => deleteAgent.mutate(agent.id)}
+              >
+                {deleteAgent.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardFooter>
     </Card>
   );

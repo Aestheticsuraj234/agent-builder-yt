@@ -21,7 +21,7 @@ export async function signOut() {
     headers: await headers(),
   });
 
-  redirect("/");
+  redirect("/login");
 }
 
 export async function requireAuth() {
@@ -39,5 +39,5 @@ export async function requireUnauth() {
     headers: await headers(),
   });
 
-  if (session) redirect("/");
+  if (session) redirect("/agents");
 }
